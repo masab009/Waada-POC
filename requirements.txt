@@ -1,5 +1,7 @@
-flask
+Flask
+Werkzeug
 flask-cors
 librosa
 numpy
 google-cloud-aiplatform
+pydub

@@ -107,8 +107,8 @@ generation_config = GenerationConfig(
     response_mime_type="application/json",
     response_schema=response_schema
 )
-
-model = GenerativeModel("gemini-1.5-pro-002")
+MODELID = "gemini-1.5-flash-002"
+model = GenerativeModel(MODELID)
 
 def analyze_audio(file_path):
     y, sr = librosa.load(file_path)
@@ -192,21 +192,21 @@ Provide a comprehensive evaluation based on the following components:
 - Include relevant quotes from the conversation to support your conclusion.
 
 ## Detailed Evaluation Criteria
-### 1. Greeting & Personalization (10%)
+### 1. Greeting & Personalization (score out of 10%)
 - Opening script adherence.
 - Customer name usage frequency.
 - Tone assessment.
 - Communication consent verification.
 - **Suggestions for Improvement:** Provide specific suggestions to improve the greeting and personalization(give examples in Roman Urdu).
 
-### 2. Language Clarity (20%)
+### 2. Language Clarity (score out of 20%)
 - Professional conduct evaluation.
 - Speech clarity assessment.
 - Language consistency check.
 - **Suggestions for Improvement:** Provide specific suggestions to improve language clarity(give examples in Roman Urdu).
 
-### 3. Resolution Attributes (70%)
-#### Product & Processes (30%)
+### 3. Resolution Attributes (score out of 70%)
+#### Product & Processes (score out of 30%)
 - Product information accuracy.
 - Terms and conditions clarity.
 - Deactivation process explanation.
@@ -215,7 +215,7 @@ Provide a comprehensive evaluation based on the following components:
 - Claims process explanation.
 - **Suggestions for Improvement:** Provide specific suggestions to improve explanations related to products and processes(give examples in Roman Urdu).
 
-#### Pricing & Activation (40%)
+#### Pricing & Activation (score out of 40%)
 - Price point clarity.
 - Charge frequency communication.
 - Balance deduction explanation.
@@ -239,6 +239,7 @@ Please provide your analysis in a structured JSON format as specified in the sch
 """
         
         logger.info("Sending request to Gemini API")
+        logger.info(f"Using the model {MODELID}")
         response = model.generate_content(
             [prompt, audio_part],
             generation_config=generation_config
@@ -330,4 +331,4 @@ def analyze():
             return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    app.run(port=5000,debug=True)

@@ -79,6 +79,13 @@ interface MetricCardProps {
   isExpanded: boolean;
 }
 
+const SCORE_DIVISIONS = {
+  'Greeting & Personalization': 10,
+  'Language Clarity': 20,
+  'Product & Processes': 30,
+  'Pricing & Activation': 40
+};
+
 function MetricCard({ icon: Icon, title, value, color, onClick, isExpanded }: MetricCardProps) {
   return (
     <div 
@@ -124,6 +131,13 @@ function SuggestionCard({ title, suggestions }: { title: string; suggestions: st
       <p className="text-gray-300 whitespace-pre-line">{suggestions}</p>
     </div>
   );
+}
+
+function getScoreColor(score: number, maxScore: number) {
+  const percentage = (score / maxScore) * 100;
+  if (percentage >= 80) return 'text-green-400';
+  if (percentage >= 60) return 'text-yellow-400';
+  return 'text-red-400';
 }
 
 function App() {
@@ -204,12 +218,6 @@ function App() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-400';
-    if (score >= 60) return 'text-yellow-400';
-    return 'text-red-400';
   };
 
   return (
@@ -366,9 +374,14 @@ function App() {
                           ([category, data]) => (
                             <div key={category} className="border-b border-[#2a334a] pb-6 last:border-b-0">
                               <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-lg text-cyan-400 font-medium">{category}</h3>
-                                <span className={`text-lg font-bold ${getScoreColor(data.Score)}`}>
-                                  {data.Score}/100
+                                <div>
+                                  <h3 className="text-lg text-cyan-400 font-medium">{category}</h3>
+                                  <p className="text-sm text-gray-400">
+                                    Maximum score: {SCORE_DIVISIONS[category as keyof typeof SCORE_DIVISIONS]}%
+                                  </p>
+                                </div>
+                                <span className={`text-lg font-bold ${getScoreColor(data.Score, SCORE_DIVISIONS[category as keyof typeof SCORE_DIVISIONS])}`}>
+                                  {data.Score}/{SCORE_DIVISIONS[category as keyof typeof SCORE_DIVISIONS]}
                                 </span>
                               </div>
                               <p className="text-gray-300 whitespace-pre-line">{data.Feedback}</p>
@@ -412,15 +425,6 @@ function App() {
             </div>
           </div>
         )}
-
-        {/* Model Toggle Button */}
-        <button
-          onClick={handleModelToggle}
-          className="fixed bottom-8 right-8 flex items-center space-x-2 px-4 py-2 rounded-lg bg-[#1a2234] text-white border border-[#2a334a] hover:bg-[#2a334a] transition-all"
-        >
-          <Sparkles className={`w-4 h-4 ${isIntelligentModel ? 'text-cyan-400' : 'text-gray-400'}`} />
-          <span>{isIntelligentModel ? 'Intelligent Model' : 'Basic Model'}</span>
-        </button>
       </div>
     </div>
   );
