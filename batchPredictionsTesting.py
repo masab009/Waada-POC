@@ -12,84 +12,91 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Set up Vertex AI
-PROJECT_ID = "tonal-topic-448519-m2"  # Replace with your project ID
-LOCATION = "asia-south1"  # Replace with your preferred location
+PROJECT_ID = "tonal-topic-448519-m2"
+LOCATION = "asia-south1"
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 
-# Set up your Cloud Storage bucket details
+# Cloud Storage bucket details
 BUCKET_NAME = "waada_bucket"
-AUDIO_FOLDER = "Waada dataset/"  # Folder where your audio files are stored
-REQUESTS_FOLDER = "Waada_req/requests/"  # Folder to store the generated JSONL file
-OUTPUT_URI = "gs://waada_bucket/model_output"  # Replace with your output bucket path
+AUDIO_FOLDER = "Waada dataset/"
+REQUESTS_FOLDER = "Waada_req/requests/"
+OUTPUT_URI = "gs://waada_bucket/model_output"
 
-# Gemini model and prompt details
-MODEL_ID = "gemini-1.5-flash-001"
+# Gemini model and output schema
+MODEL_ID = "gemini-1.5-flash-002"
 OUTPUT_SCHEMA = {
     "type": "object",
     "properties": {
         "Transcriptions": {"type": "string"},
-        "Speech Analysis": {
+        "SpeechAnalysis": {
             "type": "object",
             "properties": {
-                "Articulation Clarity": {"type": "string"},
-                "Speaking Pace": {"type": "string"},
-                "Tone": {"type": "string"},
+                "ArticulationClarity": {"type": "string"},
+                "SpeakingPace": {"type": "string"},
+                "Tone": {"type": "string"}
             },
+            "required": ["ArticulationClarity", "SpeakingPace", "Tone"]
         },
-        "Success Classification": {
+        "SuccessClassification": {
             "type": "object",
             "properties": {
                 "Successful": {"type": "boolean"},
                 "Reasons": {"type": "string"},
-                "Relevant Quotes": {"type": "string"},
+                "RelevantQuotes": {"type": "array", "items": {"type": "string"}}
             },
+            "required": ["Successful", "Reasons", "RelevantQuotes"]
         },
-        "Detailed Evaluation with Scores": {
+        "EvaluationScores": {
             "type": "object",
             "properties": {
-                "Greeting & Personalization": {
+                "GreetingPersonalization": {
                     "type": "object",
                     "properties": {
                         "Score": {"type": "integer"},
                         "Feedback": {"type": "string"},
-                        "Suggestions for Improvement": {"type": "string"},
+                        "Suggestions": {"type": "string"}
                     },
+                    "required": ["Score", "Feedback", "Suggestions"]
                 },
-                "Language Clarity": {
+                "LanguageClarity": {
                     "type": "object",
                     "properties": {
                         "Score": {"type": "integer"},
                         "Feedback": {"type": "string"},
-                        "Suggestions for Improvement": {"type": "string"},
+                        "Suggestions": {"type": "string"}
                     },
+                    "required": ["Score", "Feedback", "Suggestions"]
                 },
-                "Product & Processes": {
+                "ProductProcesses": {
                     "type": "object",
                     "properties": {
                         "Score": {"type": "integer"},
                         "Feedback": {"type": "string"},
-                        "Suggestions for Improvement": {"type": "string"},
+                        "Suggestions": {"type": "string"}
                     },
+                    "required": ["Score", "Feedback", "Suggestions"]
                 },
-                "Pricing & Activation": {
+                "PricingActivation": {
                     "type": "object",
                     "properties": {
                         "Score": {"type": "integer"},
                         "Feedback": {"type": "string"},
-                        "Suggestions for Improvement": {"type": "string"},
+                        "Suggestions": {"type": "string"}
                     },
-                },
-            },
+                    "required": ["Score", "Feedback", "Suggestions"]
+                }
+            }
         },
-        "Critical Compliance Check": {
+        "CriticalComplianceCheck": {
             "type": "object",
             "properties": {
-                "Score": {"type": "integer"},
-                "Feedback": {"type": "string"},
+                "ComplianceScore": {"type": "integer"},
+                "ComprehensiveFeedback": {"type": "string"}
             },
-        },
+            "required": ["ComplianceScore", "ComprehensiveFeedback"]
+        }
     },
-    "required": ["Transcriptions", "Speech Analysis", "Success Classification"],
+    "required": ["Transcriptions", "SpeechAnalysis", "SuccessClassification", "CriticalComplianceCheck"]
 }
 
 model = GenerativeModel(
@@ -115,7 +122,72 @@ def create_jsonl_request_entry(gcs_audio_uri):
                 {
                     "role": "user",
                     "parts": [
-                        {"text": "Please transcribe and analyze this audio."},
+                        {"text": """
+                            Audio Analyses request
+## Primary Task
+Please analyze the provided audio conversation between an insurance service employee and customer in Urdu.
+Provide a comprehensive evaluation based on the following components:
+
+## Required Outputs
+1. Transcriptions
+- Provide a complete transcription of the conversation in Urdu.
+
+2. Speech Analysis
+- Evaluate articulation clarity.
+- Assess the speaking pace of the employee.
+- Evaluate the tone of the employee.
+
+3. Success Classification
+- Clearly state whether the call was successful or unsuccessful.
+- Provide specific reasons for this classification.
+- Include relevant quotes from the conversation to support your conclusion.
+
+## Detailed Evaluation Criteria
+### 1. Greeting & Personalization (score out of 10%)
+- Opening script adherence.
+- Customer name usage frequency.
+- Tone assessment.
+- Communication consent verification.
+- **Suggestions for Improvement:** Provide specific suggestions to improve the greeting and personalization(give examples in Roman Urdu).
+
+### 2. Language Clarity (score out of 20%)
+- Professional conduct evaluation.
+- Speech clarity assessment.
+- Language consistency check.
+- **Suggestions for Improvement:** Provide specific suggestions to improve language clarity(give examples in Roman Urdu).
+
+### 3. Resolution Attributes (score out of 70%)
+#### Product & Processes (score out of 30%)
+- Product information accuracy.
+- Terms and conditions clarity.
+- Deactivation process explanation.
+- Query response completeness.
+- Product understanding verification.
+- Claims process explanation.
+- **Suggestions for Improvement:** Provide specific suggestions to improve explanations related to products and processes(give examples in Roman Urdu).
+
+#### Pricing & Activation (score out of 40%)
+- Price point clarity.
+- Charge frequency communication.
+- Balance deduction explanation.
+- Customer acknowledgment verification.
+- Pricing consent confirmation.
+- **Suggestions for Improvement:** Provide specific suggestions to improve communication regarding pricing and activation(give examples in Roman Urdu).
+
+### Critical Compliance Check
+Evaluate the overall compliance of the call, considering:
+- Proper consent verification.
+- Absence of deceptive practices.
+- Activation process compliance.
+- Point deduction tracking (-100 for missing consent).
+
+Provide a single compliance score (0-100) and comprehensive feedback summarizing all compliance aspects.
+
+## Special Instructions
+Please prioritize providing **specific and actionable suggestions for improvement** in each section. Highlight areas where the employee could have said or done something differently to achieve a better outcome.
+
+Please provide your analysis in a structured JSON format as specified in the schema
+                            """},
                         {"file_data": {"file_uri": gcs_audio_uri, "mime_type": "audio/.mp3"}}
                     ]
                 }

@@ -40,9 +40,27 @@ response_schema = {
             "properties": {
                 "Successful": {"type": "boolean"},
                 "Reasons": {"type": "string"},
-                "Relevant Quotes": {"type": "string"}
+                "Relevant Quotes": {"type": "string"},
+                "Unsuccessful Classification": {
+                    "type": "string",
+                    "enum": ["Callback", "Fraud", "None"]
+                }
             },
-            "required": ["Successful", "Reasons", "Relevant Quotes"]
+            "required": ["Successful", "Reasons", "Relevant Quotes", "Unsuccessful Classification"]
+        },
+        "Unsuccessful Call Explanation": {
+            "type": "object",
+            "properties": {
+                "Explanation": {
+                    "type": "string",
+                    "description": "Explanation for why the call was classified as either a 'Callback' or 'Fraud'. If the call was successful, return a default message."
+                },
+                "Relevant Quotes": {
+                    "type": "string",
+                    "description": "Key quotes from the conversation supporting the unsuccessful classification."
+                }
+            },
+            "required": ["Explanation", "Relevant Quotes"]
         },
         "Detailed Evaluation with Scores": {
             "type": "object",
@@ -95,9 +113,8 @@ response_schema = {
             "required": ["Score", "Feedback"]
         }
     },
-    "required": ["Transcriptions", "Speech Analysis", "Success Classification", "Detailed Evaluation with Scores", "Critical Compliance Check"]
+    "required": ["Transcriptions", "Speech Analysis", "Success Classification", "Unsuccessful Call Explanation", "Detailed Evaluation with Scores", "Critical Compliance Check"]
 }
-
 
 generation_config = GenerationConfig(
     temperature=1,
@@ -107,6 +124,113 @@ generation_config = GenerationConfig(
     response_mime_type="application/json",
     response_schema=response_schema
 )
+
+prompt = """
+# Audio Analysis and Evaluation Request
+
+## Primary Task
+Please analyze the provided audio conversation between an insurance service employee and a customer in Urdu.
+Provide a comprehensive evaluation based on the following components:
+
+## Required Outputs
+
+### 1. Transcriptions
+- Provide a complete transcription of the conversation in Urdu.
+
+### 2. Speech Analysis
+- Evaluate articulation clarity.
+- Assess the speaking pace of the employee.
+- Evaluate the tone of the employee.
+
+### 3. Success Classification
+- Clearly state whether the call was **successful** or **unsuccessful**.
+- Provide specific reasons for this classification.
+- A call is succesful when the agent has managed to pursue the customer for the purchase of subscription
+- Include relevant quotes from the conversation to support your conclusion.
+- If the call is classified as **unsuccessful**, further categorize it into one of the following:
+  - **Callback:** If there is a potential for the customer to call back.
+  - **Fraud:** If the call appears to be fraudulent in nature.
+  - **None:** If the call was a success
+
+### 4. Unsuccessful Call Explanation
+- If the call was classified as **unsuccessful**, provide an explanation for why it falls under the **"Callback"** or **"Fraud"** category.
+- Include relevant quotes from the conversation to support this classification.
+- If the call was **successful**, return the default response:  
+  "The call was successful, so it is neither a callback nor a fraud."
+
+## Detailed Evaluation Criteria
+
+### 1. Greeting & Personalization (score out of 10%)
+- Opening script adherence.
+- Customer name usage frequency.
+- Tone assessment.
+- Communication consent verification.
+- **Suggestions for Improvement:** Provide specific suggestions to improve the greeting and personalization (give examples in Roman Urdu).
+
+### 2. Language Clarity (score out of 20%)
+- Professional conduct evaluation.
+- Speech clarity assessment.
+- Language consistency check.
+- **Suggestions for Improvement:** Provide specific suggestions to improve language clarity (give examples in Roman Urdu).
+
+### 3. Resolution Attributes (score out of 70%)
+
+#### Product & Processes (score out of 30%)
+- Product information accuracy.
+- Terms and conditions clarity.
+- Deactivation process explanation.
+- Query response completeness.
+- Product understanding verification.
+- Claims process explanation.
+- **Suggestions for Improvement:** Provide specific suggestions to improve explanations related to products and processes (give examples in Roman Urdu).
+
+#### Pricing & Activation (score out of 40%)
+- Price point clarity.
+- Charge frequency communication.
+- Balance deduction explanation.
+- Customer acknowledgment verification.
+- Pricing consent confirmation.
+- **Suggestions for Improvement:** Provide specific suggestions to improve communication regarding pricing and activation (give examples in Roman Urdu).
+
+### Critical Compliance Check
+Evaluate the overall compliance of the call, considering:
+- Proper consent verification.
+- Absence of deceptive practices.
+- Activation process compliance.
+- Point deduction tracking.
+
+#For scoring refer to the following guide 
+- Greeting & Personalization: Score must be between **0 and 10** based on:
+  - Opening adherence (2 points)
+  - Customer name usage (3 points)
+  - Tone & engagement (5 points)
+
+- Language Clarity: Score must be between **0 and 20** based on:
+  - Speech clarity (10 points)
+  - Professionalism (10 points)
+
+- Product & Processes: Score must be between **0 and 30** based on:
+  - Accuracy (10 points)
+  - Completeness (10 points)
+  - Explanation clarity (10 points)
+
+- Pricing & Activation: Score must be between **0 and 40** based on:
+  - Transparency (15 points)
+  - Acknowledgment & Consent (15 points)
+  - Pricing breakdown (10 points)
+
+- Critical Compliance Check: Score must be between **0 and 100**, with:
+  - Proper consent verification **(50 points)**
+  - No deceptive practices **(30 points)**
+  - Compliance with activation process **(20 points)**
+  - **If consent is missing, auto-assign score: 0**
+
+
+## Special Instructions
+Please prioritize providing **specific and actionable suggestions for improvement** in each section. Highlight areas where the employee could have said or done something differently to achieve a better outcome.
+
+Please provide your analysis in a structured JSON format as specified in the schema.
+"""
 MODELID = "gemini-1.5-flash-002"
 model = GenerativeModel(MODELID)
 
@@ -170,74 +294,6 @@ def get_gemini_analysis(file_path):
         
         audio_part = Part.from_data(data=audio_bytes, mime_type="audio/mp3")
         
-        prompt = """
-Audio Analysis and Evaluation Request
-
-## Primary Task
-Please analyze the provided audio conversation between an insurance service employee and customer in Urdu.
-Provide a comprehensive evaluation based on the following components:
-
-## Required Outputs
-1. Transcriptions
-- Provide a complete transcription of the conversation in Urdu.
-
-2. Speech Analysis
-- Evaluate articulation clarity.
-- Assess the speaking pace of the employee.
-- Evaluate the tone of the employee.
-
-3. Success Classification
-- Clearly state whether the call was successful or unsuccessful.
-- Provide specific reasons for this classification.
-- Include relevant quotes from the conversation to support your conclusion.
-
-## Detailed Evaluation Criteria
-### 1. Greeting & Personalization (score out of 10%)
-- Opening script adherence.
-- Customer name usage frequency.
-- Tone assessment.
-- Communication consent verification.
-- **Suggestions for Improvement:** Provide specific suggestions to improve the greeting and personalization(give examples in Roman Urdu).
-
-### 2. Language Clarity (score out of 20%)
-- Professional conduct evaluation.
-- Speech clarity assessment.
-- Language consistency check.
-- **Suggestions for Improvement:** Provide specific suggestions to improve language clarity(give examples in Roman Urdu).
-
-### 3. Resolution Attributes (score out of 70%)
-#### Product & Processes (score out of 30%)
-- Product information accuracy.
-- Terms and conditions clarity.
-- Deactivation process explanation.
-- Query response completeness.
-- Product understanding verification.
-- Claims process explanation.
-- **Suggestions for Improvement:** Provide specific suggestions to improve explanations related to products and processes(give examples in Roman Urdu).
-
-#### Pricing & Activation (score out of 40%)
-- Price point clarity.
-- Charge frequency communication.
-- Balance deduction explanation.
-- Customer acknowledgment verification.
-- Pricing consent confirmation.
-- **Suggestions for Improvement:** Provide specific suggestions to improve communication regarding pricing and activation(give examples in Roman Urdu).
-
-### Critical Compliance Check
-Evaluate the overall compliance of the call, considering:
-- Proper consent verification.
-- Absence of deceptive practices.
-- Activation process compliance.
-- Point deduction tracking (-100 for missing consent).
-
-Provide a single compliance score (0-100) and comprehensive feedback summarizing all compliance aspects.
-
-## Special Instructions
-Please prioritize providing **specific and actionable suggestions for improvement** in each section. Highlight areas where the employee could have said or done something differently to achieve a better outcome.
-
-Please provide your analysis in a structured JSON format as specified in the schema.
-"""
-        
         logger.info("Sending request to Gemini API")
         logger.info(f"Using the model {MODELID}")
         response = model.generate_content(
@@ -271,6 +327,11 @@ def create_default_response(error_message):
         "Success Classification": {
             "Successful": False,
             "Reasons": "Unable to analyze",
+            "Relevant Quotes": "No quotes available",
+            "Unsuccessful Classification": "None"
+        },
+        "Unsuccessful Call Explanation": {
+            "Explanation": "Analysis failed",
             "Relevant Quotes": "No quotes available"
         },
         "Detailed Evaluation with Scores": {

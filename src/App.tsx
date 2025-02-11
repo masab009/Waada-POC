@@ -5,7 +5,6 @@ import {
   Waves,
   Activity,
   Upload,
-  Sparkles,
   X,
   BarChart2,
   MessageSquare,
@@ -14,6 +13,8 @@ import {
   XCircle,
   Loader2,
   FileText,
+  AlertTriangle,
+  Shield,
 } from 'lucide-react';
 
 interface TimeData {
@@ -46,6 +47,11 @@ interface DetailedEvaluation {
   };
 }
 
+interface UnsuccessfulCallExplanation {
+  Explanation: string;
+  'Relevant Quotes': string;
+}
+
 interface AudioMetrics {
   duration: number;
   averagePitch: number;
@@ -63,8 +69,14 @@ interface AudioMetrics {
       'Successful': boolean;
       'Reasons': string;
       'Relevant Quotes': string;
+      'Unsuccessful Classification': 'Callback' | 'Fraud' | 'None';
     };
+    'Unsuccessful Call Explanation': UnsuccessfulCallExplanation;
     'Detailed Evaluation with Scores': DetailedEvaluation;
+    'Critical Compliance Check': {
+      Score: number;
+      Feedback: string;
+    };
   };
 }
 
@@ -263,7 +275,7 @@ function App() {
         {/* Main Content */}
         {metrics && (
           <div className="flex gap-6">
-            {/* Left Column - Existing Analysis */}
+            {/* Left Column - Analysis */}
             <div className="flex-1 space-y-6">
               {/* Metrics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -344,6 +356,14 @@ function App() {
                             </span>
                           )}
                         </div>
+                        {!metrics.geminiAnalysis['Success Classification'].Successful && (
+                          <div className="border-t border-[#2a334a] pt-4">
+                            <h3 className="text-cyan-400 font-medium mb-2">Classification Type</h3>
+                            <p className="text-gray-300">
+                              {metrics.geminiAnalysis['Success Classification']['Unsuccessful Classification']}
+                            </p>
+                          </div>
+                        )}
                         <div className="border-t border-[#2a334a] pt-4">
                           <h3 className="text-cyan-400 font-medium mb-2">Reasons</h3>
                           <p className="text-gray-300">
@@ -360,6 +380,30 @@ function App() {
                     )}
                   </div>
                 </div>
+
+                {/* Unsuccessful Call Explanation */}
+                {metrics.geminiAnalysis?.['Unsuccessful Call Explanation'] && (
+                  <div className="bg-[#1a2234] rounded-xl p-6 shadow-lg border border-[#2a334a]">
+                    <div className="flex items-center gap-2 mb-4">
+                      <AlertTriangle className="w-6 h-6 text-yellow-400" />
+                      <h2 className="text-lg font-semibold text-white">Unsuccessful Call Explanation</h2>
+                    </div>
+                    <div className="space-y-4 max-h-[200px] overflow-y-auto custom-scrollbar">
+                      <div>
+                        <h3 className="text-cyan-400 font-medium mb-2">Explanation</h3>
+                        <p className="text-gray-300">
+                          {metrics.geminiAnalysis['Unsuccessful Call Explanation'].Explanation}
+                        </p>
+                      </div>
+                      <div className="border-t border-[#2a334a] pt-4">
+                        <h3 className="text-cyan-400 font-medium mb-2">Supporting Quotes</h3>
+                        <p className="text-gray-300 font-urdu">
+                          {metrics.geminiAnalysis['Unsuccessful Call Explanation']['Relevant Quotes']}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Detailed Evaluation */}
                 <div className="bg-[#1a2234] rounded-xl p-6 shadow-lg border border-[#2a334a] col-span-2">
@@ -392,6 +436,35 @@ function App() {
                             </div>
                           )
                         )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Critical Compliance Check */}
+                <div className="bg-[#1a2234] rounded-xl p-6 shadow-lg border border-[#2a334a] col-span-2">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Shield className="w-6 h-6 text-cyan-400" />
+                    <h2 className="text-lg font-semibold text-white">Critical Compliance Check</h2>
+                  </div>
+                  <div className="space-y-4">
+                    {metrics.geminiAnalysis?.['Critical Compliance Check'] && (
+                      <>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-lg text-cyan-400 font-medium">Compliance Score</h3>
+                          <span className={`text-lg font-bold ${getScoreColor(
+                            metrics.geminiAnalysis['Critical Compliance Check'].Score,
+                            100
+                          )}`}>
+                            {metrics.geminiAnalysis['Critical Compliance Check'].Score}/100
+                          </span>
+                        </div>
+                        <div className="border-t border-[#2a334a] pt-4">
+                          <h3 className="text-cyan-400 font-medium mb-2">Feedback</h3>
+                          <p className="text-gray-300 whitespace-pre-line">
+                            {metrics.geminiAnalysis['Critical Compliance Check'].Feedback}
+                          </p>
+                        </div>
                       </>
                     )}
                   </div>
