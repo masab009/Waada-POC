@@ -160,71 +160,44 @@ Provide a comprehensive evaluation based on the following components:
 
 ## Detailed Evaluation Criteria
 
-### 1. Greeting & Personalization (score out of 10%)
-- Opening script adherence.
-- Customer name usage frequency.
-- Tone assessment.
-- Communication consent verification.
+### 1. Greeting & Personalization (Score must be between **0 and 10**):
+- Opening script adherence.(2 points)
+- Customer name usage frequency.(3 points)
+- Tone assessment.(5 points)
 - **Suggestions for Improvement:** Provide specific suggestions to improve the greeting and personalization (give examples in Roman Urdu).
 
-### 2. Language Clarity (score out of 20%)
-- Professional conduct evaluation.
-- Speech clarity assessment.
-- Language consistency check.
+### 2. Language Clarity (Score must be between **0 and 20**)
+- Professional conduct evaluation.(10 points)
+- Speech clarity assessment.(5 points)
+- Language consistency check. (5 points)
 - **Suggestions for Improvement:** Provide specific suggestions to improve language clarity (give examples in Roman Urdu).
 
 ### 3. Resolution Attributes (score out of 70%)
 
-#### Product & Processes (score out of 30%)
-- Product information accuracy.
-- Terms and conditions clarity.
-- Deactivation process explanation.
-- Query response completeness.
-- Product understanding verification.
-- Claims process explanation.
+#### Product & Processes (Score must be between **0 and 30**)
+- Product information accuracy.(10 points)
+- Terms and conditions clarity.(5 points)
+- Deactivation process explanation.(2 points)
+- Query response completeness.(3 points)
+- Product understanding verification.(5 points)
+- Claims process explanation.(5 points)
 - **Suggestions for Improvement:** Provide specific suggestions to improve explanations related to products and processes (give examples in Roman Urdu).
 
-#### Pricing & Activation (score out of 40%)
-- Price point clarity.
-- Charge frequency communication.
-- Balance deduction explanation.
-- Customer acknowledgment verification.
-- Pricing consent confirmation.
+#### Pricing & Activation (Score must be between **0 and 40**)
+- Price point clarity.(8 points)
+- Charge frequency communication. (8 points)
+- Balance deduction explanation.(8 points)
+- Customer acknowledgment verification.(8 points)
+- Pricing consent confirmation.(8 points)
 - **Suggestions for Improvement:** Provide specific suggestions to improve communication regarding pricing and activation (give examples in Roman Urdu).
 
-### Critical Compliance Check
+### Critical Compliance Check (Score must be between **0 and 100**)
 Evaluate the overall compliance of the call, considering:
-- Proper consent verification.
-- Absence of deceptive practices.
-- Activation process compliance.
-- Point deduction tracking.
-
-#For scoring refer to the following guide 
-- Greeting & Personalization: Score must be between **0 and 10** based on:
-  - Opening adherence (2 points)
-  - Customer name usage (3 points)
-  - Tone & engagement (5 points)
-
-- Language Clarity: Score must be between **0 and 20** based on:
-  - Speech clarity (10 points)
-  - Professionalism (10 points)
-
-- Product & Processes: Score must be between **0 and 30** based on:
-  - Accuracy (10 points)
-  - Completeness (10 points)
-  - Explanation clarity (10 points)
-
-- Pricing & Activation: Score must be between **0 and 40** based on:
-  - Transparency (15 points)
-  - Acknowledgment & Consent (15 points)
-  - Pricing breakdown (10 points)
-
-- Critical Compliance Check: Score must be between **0 and 100**, with:
-  - Proper consent verification **(50 points)**
-  - No deceptive practices **(30 points)**
-  - Compliance with activation process **(20 points)**
-  - **If consent is missing, auto-assign score: 0**
-
+- Proper consent verification.**(50 points)**
+- Absence of deceptive practices. **(30 points)**
+- Activation process compliance.**(10 points)**
+- Point deduction tracking.**(10 points)**
+- **If consent from the costumer is missing, auto-assign score: 0**
 
 ## Special Instructions
 Please prioritize providing **specific and actionable suggestions for improvement** in each section. Highlight areas where the employee could have said or done something differently to achieve a better outcome.

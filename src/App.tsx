@@ -173,7 +173,7 @@ function App() {
       formData.append('isIntelligent', isIntelligentModel.toString());
 
       try {
-        const response = await fetch('http://localhost:5000/analyze', {
+        const response = await fetch('https://089b-2a09-bac5-5038-137d-00-1f1-1d6.ngrok-free.app/analyze', {
           method: 'POST',
           body: formData,
         });
@@ -204,7 +204,7 @@ function App() {
       formData.append('isIntelligent', newModelState.toString());
 
       try {
-        const response = await fetch('http://localhost:5000/analyze', {
+        const response = await fetch('https://089b-2a09-bac5-5038-137d-00-1f1-1d6.ngrok-free.app/analyze', {
           method: 'POST',
           body: formData,
         });
