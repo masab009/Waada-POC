@@ -20,7 +20,7 @@ app = Flask(__name__)
 CORS(app)
 
 
-vertexai.init(project="tonal-topic-448519-m2", location="asia-south1")
+vertexai.init(project="waada-ai-demos", location="us-central1")
 
 response_schema = {
     "type": "object",
