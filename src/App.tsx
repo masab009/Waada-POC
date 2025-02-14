@@ -15,7 +15,6 @@ import {
   FileText,
   AlertTriangle,
   Shield,
-  Folder,
 } from 'lucide-react';
 
 interface TimeData {
@@ -141,63 +140,61 @@ function getScoreColor(score: number, maxScore: number) {
   return 'text-red-400';
 }
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 function App() {
-  const [isIntelligentModel, setIsIntelligentModel] = useState(false);
   const [audioFiles, setAudioFiles] = useState<FileStatus[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileStatus | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showTranscription, setShowTranscription] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const directoryInputRef = useRef<HTMLInputElement>(null);
   const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
+  const [selectedFilesToUpload, setSelectedFilesToUpload] = useState<Set<string>>(new Set());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const processBatch = async (files: File[], startIndex: number) => {
-    const batchSize = 100;
-    const endIndex = Math.min(startIndex + batchSize, files.length);
-    const currentBatch = files.slice(startIndex, endIndex);
+  const processFile = async (file: File): Promise<void> => {
+    const formData = new FormData();
+    formData.append('audio', file);
 
-    for (const file of currentBatch) {
-      const formData = new FormData();
-      formData.append('audio', file);
-      formData.append('isIntelligent', isIntelligentModel.toString());
+    setAudioFiles(prev => prev.map(f => 
+      f.name === file.name ? { ...f, status: 'processing' } : f
+    ));
 
-      setAudioFiles(prev => prev.map(f => 
-        f.name === file.name ? { ...f, status: 'processing' } : f
-      ));
+    try {
+      const response = await fetch('http://127.0.0.1:5000/analyze', {
+        method: 'POST',
+        body: formData,
+      });
 
-      try {
-        const response = await fetch('http://127.0.0.1:5000/analyze', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-
-        const data = await response.json();
-        setAudioFiles(prev => prev.map(f => 
-          f.name === file.name ? { ...f, status: 'completed', metrics: data } : f
-        ));
-      } catch (error) {
-        setAudioFiles(prev => prev.map(f => 
-          f.name === file.name ? { ...f, status: 'error', error: error.message } : f
-        ));
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
       }
 
-      await delay(1000); // Wait 1 second between requests
-    }
-
-    if (endIndex < files.length) {
-      await processBatch(files, endIndex);
-    } else {
-      setIsProcessing(false);
+      const data = await response.json();
+      
+      setAudioFiles(prev => prev.map(f => 
+        f.name === file.name ? { ...f, status: 'completed', metrics: data } : f
+      ));
+    } catch (error) {
+      setAudioFiles(prev => prev.map(f => 
+        f.name === file.name ? { ...f, status: 'error', error: error.message } : f
+      ));
     }
   };
 
-  const handleDirectoryUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const processBatch = async (files: File[]) => {
+    const selectedFiles = Array.from(files).filter(file => selectedFilesToUpload.has(file.name));
+    
+    // Start processing all files with a delay between each request
+    selectedFiles.forEach((file, index) => {
+      setTimeout(() => {
+        processFile(file);
+      }, index * 1000); // 1 second delay between each request
+    });
+
+    // Set processing to false after all files have been queued
+    setTimeout(() => {
+      setIsProcessing(false);
+    }, selectedFiles.length * 1000);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
@@ -205,22 +202,41 @@ function App() {
       name: file.name,
       status: 'pending'
     })));
+    
+    setSelectedFilesToUpload(new Set(files.map(file => file.name)));
+  };
 
-    try {
-      await processBatch(files, 0);
-    } finally {
-      setIsProcessing(false);
-    }
+  const toggleFileSelection = (fileName: string) => {
+    setSelectedFilesToUpload(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fileName)) {
+        newSet.delete(fileName);
+      } else {
+        newSet.add(fileName);
+      }
+      return newSet;
+    });
+  };
+
+  const handleStartProcessing = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    
+    const files = Array.from(fileInputRef.current?.files || []);
+    await processBatch(files);
   };
 
   const handleFileSelect = (file: FileStatus) => {
-    if (file.status === 'completed') {
-      setSelectedFile(file);
-    }
+    setSelectedFile(file);
   };
 
   const handleRemoveFile = (fileName: string) => {
     setAudioFiles(prev => prev.filter(f => f.name !== fileName));
+    setSelectedFilesToUpload(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(fileName);
+      return newSet;
+    });
     if (selectedFile?.name === fileName) {
       setSelectedFile(null);
     }
@@ -233,18 +249,26 @@ function App() {
           <h1 className="text-2xl font-bold text-white">Call Analysis Dashboard</h1>
           <div className="flex items-center space-x-4">
             <label className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-[#1a2234] text-white border border-[#2a334a] transition-all cursor-pointer hover:bg-[#2a334a]">
-              <Folder className="w-4 h-4" />
-              <span>Upload Directory</span>
+              <Upload className="w-4 h-4" />
+              <span>Select Files</span>
               <input
-                ref={directoryInputRef}
+                ref={fileInputRef}
                 type="file"
-                webkitdirectory=""
-                directory=""
                 multiple
-                onChange={handleDirectoryUpload}
+                onChange={handleFileUpload}
                 className="hidden"
+                accept="audio/*"
               />
             </label>
+            {audioFiles.length > 0 && !isProcessing && (
+              <button
+                onClick={handleStartProcessing}
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-cyan-500 text-white hover:bg-cyan-600 transition-all"
+                disabled={selectedFilesToUpload.size === 0}
+              >
+                <span>Process Selected Files</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -255,14 +279,21 @@ function App() {
               {audioFiles.map((file) => (
                 <div
                   key={file.name}
+                  onClick={() => handleFileSelect(file)}
                   className={`flex items-center justify-between p-3 rounded-lg ${
-                    file.status === 'completed' ? 'cursor-pointer ' : 'cursor-default opacity-70'
+                    file.status === 'completed' ? 'cursor-pointer' : 'cursor-default opacity-70'
                   } ${
                     selectedFile?.name === file.name ? 'bg-[#2a334a]' : 'hover:bg-[#2a334a]'
                   } transition-all`}
-                  onClick={() => file.status === 'completed' && handleFileSelect(file)}
                 >
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={selectedFilesToUpload.has(file.name)}
+                      onChange={() => toggleFileSelection(file.name)}
+                      className="w-4 h-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
+                      disabled={file.status !== 'pending'}
+                    />
                     <FileText className="w-4 h-4 text-cyan-400 flex-shrink-0" />
                     <span className="text-white truncate">{file.name}</span>
                   </div>
@@ -339,6 +370,18 @@ function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-[#1a2234] rounded-xl p-6 shadow-lg border border-[#2a334a] col-span-2">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FileText className="w-6 h-6 text-cyan-400" />
+                      <h2 className="text-lg font-semibold text-white">Transcription</h2>
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
+                      <p className="text-gray-300 font-urdu whitespace-pre-line">
+                        {selectedFile.metrics.geminiAnalysis?.Transcriptions}
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="bg-[#1a2234] rounded-xl p-6 shadow-lg border border-[#2a334a]">
                     <div className="flex items-center gap-2 mb-4">
                       <MessageSquare className="w-6 h-6 text-cyan-400" />
